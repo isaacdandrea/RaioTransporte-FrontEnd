@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -6,6 +6,7 @@ import {
   Popup,
   CircleMarker,
   GeoJSON,
+  LayerGroup,
   useMap,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -16,19 +17,25 @@ import "leaflet/dist/leaflet.css";
  * Exibe isócronas ("raios") recebidas via `raioData` (GeoJSON FeatureCollection)
  * e atualiza automaticamente sempre que a prop muda.
  *
- * A implementação replica o comportamento de `testar_raio_visual_externo.py`:
- *  • Polígonos/MultiPolígonos recebem contorno roxo e preenchimento translúcido
- *  • Pontos recebem `CircleMarker` azul com popup indicando a parada e o tempo
- *  • Um marcador vermelho indica a posição de origem (centro do mapa)
+ * Pontos azuis (paradas) **só aparecem** quando:
+ *   • o usuário passa o mouse próximo deles **ou**
+ *   • o nível de zoom é ≥ `zoomThreshold` (default: 15)
+ *
+ * Polígonos são substituídos integralmente quando chegam novos dados —
+ * o componente desmonta o `LayerGroup` antigo e monta um novo, garantindo
+ * que geometrias antigas não fiquem no mapa.
+ *
+ * Estilos:
+ *   • Borda do polígono: #49701c
+ *   • Preenchimento:      #88b256 (30% opacidade)
  *
  * Props
  * -----
- * @param {{ type: "FeatureCollection", features: [] }} raioData - GeoJSON com isócronas
- * @param {[number, number]} center  - [lat, lon] do ponto de origem (default: São Paulo‑SP)
+ * @param {{ type: "FeatureCollection", features: [] }} raioData - GeoJSON
+ * @param {[number, number]} center  - [lat, lon] da origem (default: São Paulo)
  * @param {number} zoom             - Nível de zoom inicial (default: 13)
  */
 
-// 🔹 Marcador da posição de origem
 function OrigemMarker({ position }) {
   return (
       <Marker position={position}>
@@ -37,11 +44,21 @@ function OrigemMarker({ position }) {
   );
 }
 
-// 🔹 Camada que desenha pontos e polígonos dos raios
-function RaioLayer({ data }) {
+function RaioLayer({ data, zoomThreshold = 15 }) {
   const map = useMap();
+  const [zoom, setZoom] = useState(map.getZoom());
+  const [version, setVersion] = useState(0);
 
-  // 🔄 Constrói os elementos Leaflet a partir do GeoJSON
+  useEffect(() => {
+    const onZoom = () => setZoom(map.getZoom());
+    map.on("zoomend", onZoom);
+    return () => map.off("zoomend", onZoom);
+  }, [map]);
+
+  useEffect(() => {
+    setVersion((v) => v + 1);
+  }, [data]);
+
   const layers = useMemo(() => {
     if (!data?.features?.length) return null;
 
@@ -49,15 +66,34 @@ function RaioLayer({ data }) {
       const { geometry, properties } = feat;
 
       if (geometry.type === "Point") {
+        const visible = zoom >= zoomThreshold;
+
         return (
             <CircleMarker
                 key={`pt-${idx}`}
                 center={[geometry.coordinates[1], geometry.coordinates[0]]}
-                radius={4}
-                pathOptions={{ color: "blue", fillOpacity: 0.7 }}
+                radius={6}
+                pathOptions={{
+                  color: "blue",
+                  weight: 1,
+                  opacity: visible ? 1 : 0,
+                  fillOpacity: visible ? 0.7 : 0,
+                }}
+                eventHandlers={{
+                  mouseover: (e) => {
+                    if (zoom < zoomThreshold) {
+                      e.target.setStyle({ opacity: 1, fillOpacity: 0.7 });
+                    }
+                  },
+                  mouseout: (e) => {
+                    if (zoom < zoomThreshold) {
+                      e.target.setStyle({ opacity: 0, fillOpacity: 0 });
+                    }
+                  },
+                }}
             >
               <Popup>
-                {properties?.stop_name} ({properties?.tempo_min} min)
+                {properties?.stop_name} ({properties?.tempo_min} min)
               </Popup>
             </CircleMarker>
         );
@@ -68,25 +104,25 @@ function RaioLayer({ data }) {
             <GeoJSON
                 key={`poly-${idx}`}
                 data={geometry}
-                style={{ color: "purple", weight: 2, fillOpacity: 0.15 }}
+                style={{
+                  color: "#49701c", // borda
+                  weight: 2,
+                  fillColor: "#88b256", // preenchimento
+                  fillOpacity: 0.3,
+                }}
             />
         );
       }
 
-      // Geometrias inesperadas são ignoradas (ex.: LineString)
       return null;
     });
-  }, [data]);
+  }, [data, zoom, zoomThreshold]);
 
-  // 🔍 Ajusta o enquadramento sempre que chegam novos dados
   useEffect(() => {
     if (!data?.features?.length) return;
-
     const bounds = [];
-
     data.features.forEach((feat) => {
       const { geometry } = feat;
-
       if (geometry.type === "Point") {
         bounds.push([geometry.coordinates[1], geometry.coordinates[0]]);
       } else if (geometry.type === "Polygon") {
@@ -97,19 +133,19 @@ function RaioLayer({ data }) {
         );
       }
     });
-
     if (bounds.length) {
       map.fitBounds(bounds, { padding: [20, 20] });
     }
   }, [data, map]);
 
-  return <>{layers}</>;
+  return <LayerGroup key={version}>{layers}</LayerGroup>;
 }
 
 export default function Mapa({
                                raioData,
-                               center = [-23.55052, -46.633308], // São Paulo (default)
+                               center = [-23.55052, -46.633308],
                                zoom = 13,
+                               zoomThreshold = 15,
                              }) {
   return (
       <MapContainer
@@ -118,15 +154,15 @@ export default function Mapa({
           style={{ height: "100%", width: "100%" }}
       >
         <TileLayer
-            attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
+            attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        {/* Origem */}
         <OrigemMarker position={center} />
 
-        {/* Raios (isócronas) */}
-        {raioData && <RaioLayer data={raioData} />}
+        {raioData && (
+            <RaioLayer data={raioData} zoomThreshold={zoomThreshold} />
+        )}
       </MapContainer>
   );
 }
