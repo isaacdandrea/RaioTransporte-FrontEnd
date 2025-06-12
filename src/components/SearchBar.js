@@ -1,22 +1,17 @@
+// src/components/SearchBar.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import '../styles/SearchBar.css';
 import { useLocation } from '../contexts/LocationContext';
 
-/**
- * Props
- * -----
- * onResults?: function  // callback para receber os dados retornados pela API de "raio".
- */
+const DEFAULT_TEMPO = 30;
 
-const DEFAULT_TEMPO = 30; // valor padrão (30 min)
-
-const SearchBar = ({ onResults }) => {
+const SearchBar = ({ onResults, onCoordinates }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [recommendations, setRecommendations] = useState([]);
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedCoordinates, setSelectedCoordinates] = useState(null);
-  const [selectedTempo, setSelectedTempo] = useState(DEFAULT_TEMPO); // 15 | 30 | 45
+  const [selectedTempo, setSelectedTempo] = useState(DEFAULT_TEMPO);
 
   const searchContainerRef = useRef(null);
   const debounceTimerRef = useRef(null);
@@ -111,10 +106,8 @@ const SearchBar = ({ onResults }) => {
     }
 
     try {
-      // Move o mapa
       updatePosition(selectedCoordinates.latitude, selectedCoordinates.longitude);
 
-      // Chama backend
       const response = await fetch('http://191.9.114.117:18001/transporte/api/raio/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -128,7 +121,9 @@ const SearchBar = ({ onResults }) => {
       if (!response.ok) throw new Error('Falha na API de raio');
       const raioData = await response.json();
 
+      // --- envia tudo para o pai ---
       onResults?.(raioData);
+      onCoordinates?.(selectedCoordinates.latitude, selectedCoordinates.longitude);
     } catch (err) {
       console.error('Erro ao processar busca:', err);
     } finally {

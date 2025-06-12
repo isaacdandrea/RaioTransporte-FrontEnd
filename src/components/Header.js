@@ -1,16 +1,17 @@
+// src/components/Header.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
 import SearchBar from './SearchBar';
 
-const Header = ({ onResults }) => (
+const Header = ({ onResults, onCoordinates }) => (
     <header className="app-header">
         <div className="header-left">
             <h1>Meu Mapa de Ônibus</h1>
         </div>
 
         <div className="header-center">
-            {/* ➍  Propaga o callback para SearchBar */}
-            <SearchBar onResults={onResults} />
+            {/* repassa ambos os callbacks */}
+            <SearchBar onResults={onResults} onCoordinates={onCoordinates} />
         </div>
 
         <nav className="header-right">

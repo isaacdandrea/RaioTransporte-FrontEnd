@@ -10,25 +10,29 @@ import Mapa from '../components/Mapa';
  */
 
 const Home = () => {
-  // Estado que receberá o GeoJSON devolvido pelo endpoint
   const [raioData, setRaioData] = useState(null);
+  const [coords, setCoords] = useState({ lat: null, lon: null });
 
-  // 🔍 Loga no console sempre que chegar/alterar o raioData
+  // log para conferência
   useEffect(() => {
-    if (raioData) {
-      console.log('🔄 Dados recebidos no Home:', raioData);
-    }
+    if (raioData) console.log('🔄 Dados recebidos no Home:', raioData);
   }, [raioData]);
+
+  useEffect(() => {
+    if (coords.lat !== null) console.log('📍 Coordenadas recebidas:', coords);
+  }, [coords]);
+
+  const handleCoordinates = (lat, lon) => setCoords({ lat, lon });
 
   return (
       <div className="App">
-        {/* Passa o setter como callback para o SearchBar */}
-        <Header onResults={setRaioData} />
+        {/* passa os dois handlers para o Header → SearchBar */}
+        <Header onResults={setRaioData} onCoordinates={handleCoordinates} />
 
         <div className="content-container">
           <div className="map-section">
-            {/* Entrega os dados ao Leaflet */}
-            <Mapa raioData={raioData} />
+            {/* ✅ coords agora é passado para o Mapa */}
+            <Mapa raioData={raioData} coords={coords} />
           </div>
 
           <div className="text-section">
