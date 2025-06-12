@@ -6,7 +6,7 @@ import SearchBar from './SearchBar';
 const Header = ({ onResults, onCoordinates }) => (
     <header className="app-header">
         <div className="header-left">
-            <h1>Meu Mapa de Ônibus</h1>
+            <h1>Até Onde Posso Ir?</h1>
         </div>
 
         <div className="header-center">

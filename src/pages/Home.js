@@ -37,17 +37,12 @@ const Home = () => {
 
           <div className="text-section">
             <div className="project-description">
-              <h2>Encontre Pontos de Ônibus Próximos</h2>
-              <p>
-                Bem-vindo ao Meu Mapa de Ônibus! Este projeto foi desenvolvido para ajudar você a localizar
-                pontos de ônibus próximos à sua localização atual. Utilizando dados do OpenStreetMap e
-                geolocalização, nosso sistema mostra em tempo real os pontos de ônibus em um raio de 500 metros
-                ao seu redor.
+              <h2>Até onde posso ir?</h2>
+              <p className="text-lg">
+                Bem-vindo ao nosso TCC! Este projeto foi desenvolvido para ajudar você a entender todos os lugares que pode ir em um certo tempo de transporte. Veja os lugares acessíveis ao seu redor e entenda melhor o seu bairro.
               </p>
-              <p>
-                O mapa interativo exibe sua localização com um marcador vermelho e os pontos de ônibus com
-                marcadores azuis. A área roxa representa a região que engloba todos os pontos de ônibus encontrados,
-                ajudando você a visualizar melhor a distribuição dos pontos em sua região.
+              <p className="text-lg mt-4">
+                Para usar, digite um endereço e escolha o tempo de transporte para visualizar todos os locais acessíveis. Após isso, em instantes, um raio aparecerá no mapa mostrando todas as áreas que você pode alcançar nesse tempo e, ao passar o mouse por cima delas, aparecerão os pontos de ônibus ou metrôs com o tempo aproximado que leva para chegar até eles. Assim, você consegue ter uma melhor ideia de onde ir e quanto tempo demora para chegar ao local!
               </p>
             </div>
           </div>
