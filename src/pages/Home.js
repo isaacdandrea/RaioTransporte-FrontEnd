@@ -42,7 +42,7 @@ const Home = () => {
                 Bem-vindo ao nosso TCC! Este projeto foi desenvolvido para ajudar você a entender todos os lugares que pode ir em um certo tempo de transporte. Veja os lugares acessíveis ao seu redor e entenda melhor o seu bairro.
               </p>
               <p className="text-lg mt-4">
-                Para usar, digite um endereço e escolha o tempo de transporte para visualizar todos os locais acessíveis. Após isso, em instantes, um raio aparecerá no mapa mostrando todas as áreas que você pode alcançar nesse tempo e, ao passar o mouse por cima delas, aparecerão os pontos de ônibus ou metrôs com o tempo aproximado que leva para chegar até eles. Assim, você consegue ter uma melhor ideia de onde ir e quanto tempo demora para chegar ao local!
+                Para usar, digite um endereço e escolha o tempo de transporte para visualizar todos os locais acessíveis. Após isso, em instantes, um raio aparecerá no mapa mostrando todas as áreas que você pode alcançar nesse tempo e, ao passar o mouse por cima delas, aparecerão os pontos de ônibus ou metrôs com o tempo aproximado que leva para chegar até eles. Assim, você consegue ter uma melhor ideia de onde ir e quanto tempo demora para chegar ao local! O nosso projeto está implementado para a cidade de São Paulo apenas, no futuro implementaremos a região metropolitana de São Paulo e possivelmente outras cidades!
               </p>
             </div>
           </div>
