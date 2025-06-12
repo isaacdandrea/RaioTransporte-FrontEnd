@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polygon } from 'react-leaflet';
 import L from 'leaflet';
 import axios from 'axios';
@@ -9,7 +9,7 @@ import 'leaflet/dist/leaflet.css';
 import iconBlue from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 
-// Criando um ícone vermelho para o usuário
+// Criando o ícone vermelho para o usuário
 const redIcon = L.icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
   shadowUrl: iconShadow,
@@ -19,7 +19,7 @@ const redIcon = L.icon({
   shadowSize: [41, 41]
 });
 
-// Criando um ícone azul para os pontos de ônibus
+// Criando o ícone azul para os pontos de ônibus
 const blueIcon = L.icon({
   iconUrl: iconBlue,
   shadowUrl: iconShadow,
@@ -43,56 +43,107 @@ const MapView = ({ position }) => {
 };
 
 const Mapa = () => {
-  const [position, setPosition] = useState([-23.5505, -46.6333]); // Coordenadas iniciais de São Paulo
+  const [position, setPosition] = useState([-23.5505, -46.6333]);
   const [busStops, setBusStops] = useState([]);
   const [error, setError] = useState('');
+  const [isMounted, setIsMounted] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setPosition([pos.coords.latitude, pos.coords.longitude]);
-        },
-        (err) => {
-          setError('Não foi possível obter a localização.');
-          console.error("Erro de geolocalização:", err);
-        }
-      );
-    } else {
-      setError('Geolocalização não é suportada por este navegador.');
+  const fetchBusStops = useCallback(async () => {
+    if (!isMounted) return;
+    
+    console.log('Buscando pontos de ônibus para posição:', position);
+    if (position[0] === 0 && position[1] === 0) {
+      console.log('Posição inválida, não buscando pontos');
+      return;
     }
-  }, []);
 
-  useEffect(() => {
-    const fetchBusStops = async () => {
-      if (position[0] === 0 && position[1] === 0) return;
+    setIsLoading(true);
+    const radius = 500;
+    const query = `
+      [out:json];
+      (
+        node["highway"="bus_stop"](around:${radius}, ${position[0]}, ${position[1]});
+      );
+      out body;
+    `;
 
-      const radius = 500; // Raio em metros
-      const query = `
-        [out:json];
-        (
-          node["highway"="bus_stop"](around:${radius}, ${position[0]}, ${position[1]});
-        );
-        out body;
-      `;
-
-      try {
-        const response = await axios.get(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+    try {
+      console.log('Fazendo requisição para Overpass API...');
+      const response = await axios.get(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+      console.log('Resposta recebida:', response.data);
+      
+      if (isMounted && response.data.elements) {
         const stops = response.data.elements.map(stop => ({
           id: stop.id,
           lat: stop.lat,
           lon: stop.lon,
           name: stop.tags?.name || 'Ponto de ônibus',
         }));
+        console.log('Pontos de ônibus processados:', stops);
         setBusStops(stops);
-      } catch (error) {
-        console.error("Erro ao buscar pontos de ônibus:", error);
+      }
+    } catch (error) {
+      console.error("Erro detalhado ao buscar pontos de ônibus:", error);
+      if (isMounted) {
         setError('Erro ao buscar pontos de ônibus próximos.');
       }
-    };
+    } finally {
+      if (isMounted) {
+        setIsLoading(false);
+      }
+    }
+  }, [position, isMounted]);
 
-    fetchBusStops();
-  }, [position]);
+  useEffect(() => {
+    console.log('Componente montado');
+    setIsMounted(true);
+    return () => {
+      console.log('Componente desmontado');
+      setIsMounted(false);
+      setBusStops([]);
+      setError('');
+    };
+  }, []);
+
+  useEffect(() => {
+    console.log('Verificando geolocalização...');
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          console.log('Geolocalização obtida:', pos.coords);
+          if (isMounted) {
+            const newPosition = [pos.coords.latitude, pos.coords.longitude];
+            console.log('Nova posição definida:', newPosition);
+            setPosition(newPosition);
+          }
+        },
+        (err) => {
+          console.error("Erro detalhado de geolocalização:", err);
+          if (isMounted) {
+            setError('Não foi possível obter a localização.');
+          }
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
+        }
+      );
+    } else {
+      console.log('Geolocalização não suportada');
+      if (isMounted) {
+        setError('Geolocalização não é suportada por este navegador.');
+      }
+    }
+  }, [isMounted]);
+
+  useEffect(() => {
+    console.log('Efeito de busca de pontos de ônibus acionado');
+    if (isMounted && !isLoading) {
+      fetchBusStops();
+    }
+  }, [position, fetchBusStops, isMounted, isLoading]);
 
   const convexHull = () => {
     if (busStops.length < 3) return null;
@@ -118,6 +169,7 @@ const Mapa = () => {
         center={position}
         zoom={15}
         style={{ height: "100%", width: "100%" }}
+        key={`map-${position[0]}-${position[1]}`}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

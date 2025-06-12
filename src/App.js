@@ -1,12 +1,17 @@
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './styles/App.css';
-import Mapa from './components/Mapa';
+import Home from './pages/Home';
+import Sobre from './pages/Sobre';
 
 function App() {
   return (
-    <div className="App">
-      <Mapa />
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/sobre" element={<Sobre />} />
+      </Routes>
+    </Router>
   );
 }
 
