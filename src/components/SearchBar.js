@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import '../styles/SearchBar.css';
+import { useLocation } from '../contexts/LocationContext';
 
 const SearchBar = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [recommendations, setRecommendations] = useState([]);
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedCoordinates, setSelectedCoordinates] = useState(null);
   const searchContainerRef = useRef(null);
   const debounceTimerRef = useRef(null);
+  const { updatePosition } = useLocation();
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -84,15 +87,51 @@ const SearchBar = () => {
   };
 
   const handleRecommendationClick = (recommendation) => {
+    console.log('Local selecionado:', recommendation);
     setSearchQuery(recommendation.displayName);
     setShowRecommendations(false);
-    // Aqui você pode usar recommendation.lat e recommendation.lon para outras funcionalidades
-    console.log('Localização selecionada:', recommendation);
+    const lat = parseFloat(recommendation.lat);
+    const lon = parseFloat(recommendation.lon);
+    setSelectedCoordinates({
+      latitude: lat,
+      longitude: lon
+    });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Busca realizada:', searchQuery);
+    console.log('Botão Buscar clicado');
+    console.log('Coordenadas selecionadas:', selectedCoordinates);
+
+    if (selectedCoordinates) {
+      try {
+        // Atualiza a posição do mapa imediatamente
+        console.log('Atualizando posição do mapa para:', selectedCoordinates);
+        updatePosition(selectedCoordinates.latitude, selectedCoordinates.longitude);
+
+        // Tenta enviar para o endpoint (comentado por enquanto)
+        /*
+        const response = await fetch('http://localhost:3001/api/coordinates', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(selectedCoordinates),
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao enviar coordenadas');
+        }
+
+        const data = await response.json();
+        console.log('Coordenadas enviadas com sucesso:', data);
+        */
+      } catch (error) {
+        console.error('Erro ao enviar coordenadas:', error);
+      }
+    } else {
+      console.log('Nenhuma coordenada selecionada');
+    }
     setShowRecommendations(false);
   };
 

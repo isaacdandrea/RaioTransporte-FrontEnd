@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, Polygon } from 'react-l
 import L from 'leaflet';
 import axios from 'axios';
 import * as turf from '@turf/turf';
+import { useLocation } from '../contexts/LocationContext';
 
 // Importações necessárias do Leaflet
 import 'leaflet/dist/leaflet.css';
@@ -43,7 +44,7 @@ const MapView = ({ position }) => {
 };
 
 const Mapa = () => {
-  const [position, setPosition] = useState([-23.5505, -46.6333]);
+  const { position, updatePosition } = useLocation();
   const [busStops, setBusStops] = useState([]);
   const [error, setError] = useState('');
   const [isMounted, setIsMounted] = useState(true);
@@ -115,7 +116,7 @@ const Mapa = () => {
           if (isMounted) {
             const newPosition = [pos.coords.latitude, pos.coords.longitude];
             console.log('Nova posição definida:', newPosition);
-            setPosition(newPosition);
+            updatePosition(pos.coords.latitude, pos.coords.longitude);
           }
         },
         (err) => {
