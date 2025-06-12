@@ -2,7 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import '../styles/SearchBar.css';
 import { useLocation } from '../contexts/LocationContext';
 
-const SearchBar = () => {
+/**
+ * Props
+ * -----
+ * onResults?: function  // callback para receber os dados retornados pela API de "raio".
+ */
+
+const TEMPO_MIN = 30; // tempo fixo, conforme requisito
+
+const SearchBar = ({ onResults }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [recommendations, setRecommendations] = useState([]);
   const [showRecommendations, setShowRecommendations] = useState(false);
@@ -12,6 +20,7 @@ const SearchBar = () => {
   const debounceTimerRef = useRef(null);
   const { updatePosition } = useLocation();
 
+  // Mantemos o listener de clique fora do componente para esconder recomendações
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
@@ -25,6 +34,9 @@ const SearchBar = () => {
     };
   }, []);
 
+  /**
+   * Faz a busca de endereços usando Nominatim
+   */
   const searchAddress = async (query) => {
     if (!query.trim()) {
       setRecommendations([]);
@@ -34,15 +46,15 @@ const SearchBar = () => {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-          query
-        )}&limit=5&addressdetails=1&countrycodes=br&accept-language=pt-BR`,
-        {
-          headers: {
-            'Accept-Language': 'pt-BR',
-            'User-Agent': 'MeuMapaDeOnibus/1.0'
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+              query
+          )}&limit=5&addressdetails=1&countrycodes=br&accept-language=pt-BR`,
+          {
+            headers: {
+              'Accept-Language': 'pt-BR',
+              'User-Agent': 'MeuMapaDeOnibus/1.0'
+            }
           }
-        }
       );
 
       if (!response.ok) {
@@ -65,19 +77,20 @@ const SearchBar = () => {
     }
   };
 
+  /**
+   * Atualiza o input e faz debounce para pesquisar
+   */
   const handleInputChange = (e) => {
     const value = e.target.value;
     setSearchQuery(value);
 
-    // Limpa o timer anterior
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
 
-    // Define um novo timer
     debounceTimerRef.current = setTimeout(() => {
       searchAddress(value);
-    }, 300); // 300ms de debounce
+    }, 300);
 
     if (value.trim()) {
       setShowRecommendations(true);
@@ -86,89 +99,92 @@ const SearchBar = () => {
     }
   };
 
+  /**
+   * Seleciona uma recomendação e guarda as coordenadas
+   */
   const handleRecommendationClick = (recommendation) => {
-    console.log('Local selecionado:', recommendation);
     setSearchQuery(recommendation.displayName);
     setShowRecommendations(false);
     const lat = parseFloat(recommendation.lat);
     const lon = parseFloat(recommendation.lon);
-    setSelectedCoordinates({
-      latitude: lat,
-      longitude: lon
-    });
+    setSelectedCoordinates({ latitude: lat, longitude: lon });
   };
 
+  /**
+   * Faz submit: atualiza o mapa e chama o backend de raio
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Botão Buscar clicado');
-    console.log('Coordenadas selecionadas:', selectedCoordinates);
 
-    if (selectedCoordinates) {
-      try {
-        // Atualiza a posição do mapa imediatamente
-        console.log('Atualizando posição do mapa para:', selectedCoordinates);
-        updatePosition(selectedCoordinates.latitude, selectedCoordinates.longitude);
-
-        // Tenta enviar para o endpoint (comentado por enquanto)
-        /*
-        const response = await fetch('http://localhost:3001/api/coordinates', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(selectedCoordinates),
-        });
-
-        if (!response.ok) {
-          throw new Error('Erro ao enviar coordenadas');
-        }
-
-        const data = await response.json();
-        console.log('Coordenadas enviadas com sucesso:', data);
-        */
-      } catch (error) {
-        console.error('Erro ao enviar coordenadas:', error);
-      }
-    } else {
+    if (!selectedCoordinates) {
       console.log('Nenhuma coordenada selecionada');
+      setShowRecommendations(false);
+      return;
     }
-    setShowRecommendations(false);
+
+    try {
+      // 1. Move o mapa imediatamente
+      updatePosition(selectedCoordinates.latitude, selectedCoordinates.longitude);
+
+      // 2. Chama o endpoint Python (testar_raio_visual_externo.py)
+      const response = await fetch('http://191.9.114.117:18001/transporte/api/raio/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lat: selectedCoordinates.latitude,
+          lon: selectedCoordinates.longitude,
+          tempo: TEMPO_MIN
+        })
+      });
+
+      if (!response.ok) throw new Error('Falha na API de raio');
+
+      const raioData = await response.json(); // GeoJSON + meta
+
+      // 3. Propaga os dados para quem precisar renderizar no Leaflet
+      if (onResults) {
+        onResults(raioData);
+      }
+    } catch (error) {
+      console.error('Erro ao processar busca:', error);
+      // Aqui você pode exibir um toast ou alerta para o usuário
+    } finally {
+      setShowRecommendations(false);
+    }
   };
 
   return (
-    <div className="search-container" ref={searchContainerRef}>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="Digite um endereço ou local..."
-          value={searchQuery}
-          onChange={handleInputChange}
-          onFocus={() => searchQuery.trim() && setShowRecommendations(true)}
-        />
-        <button type="submit">
-          Buscar
-        </button>
-      </form>
-      
-      {showRecommendations && (recommendations.length > 0 || isLoading) && (
-        <div className="recommendations">
-          {isLoading ? (
-            <div className="recommendation-item loading">Carregando...</div>
-          ) : (
-            recommendations.map((recommendation, index) => (
-              <div
-                key={index}
-                className="recommendation-item"
-                onClick={() => handleRecommendationClick(recommendation)}
-              >
-                {recommendation.displayName}
-              </div>
-            ))
-          )}
-        </div>
-      )}
-    </div>
+      <div className="search-container" ref={searchContainerRef}>
+        <form onSubmit={handleSubmit}>
+          <input
+              type="text"
+              placeholder="Digite um endereço ou local..."
+              value={searchQuery}
+              onChange={handleInputChange}
+              onFocus={() => searchQuery.trim() && setShowRecommendations(true)}
+          />
+          <button type="submit">Buscar</button>
+        </form>
+
+        {showRecommendations && (recommendations.length > 0 || isLoading) && (
+            <div className="recommendations">
+              {isLoading ? (
+                  <div className="recommendation-item loading">Carregando...</div>
+              ) : (
+                  recommendations.map((recommendation, index) => (
+                      <div
+                          key={index}
+                          className="recommendation-item"
+                          onClick={() => handleRecommendationClick(recommendation)}
+                      >
+                        {recommendation.displayName}
+                      </div>
+                  ))
+              )}
+            </div>
+        )}
+      </div>
   );
 };
 
-export default SearchBar; 
+export default SearchBar;
