@@ -108,7 +108,7 @@ const SearchBar = ({ onResults, onCoordinates }) => {
     try {
       updatePosition(selectedCoordinates.latitude, selectedCoordinates.longitude);
 
-      const response = await fetch('http://191.9.114.117:18001/transporte/api/raio/', {
+      const response = await fetch('http://127.0.0.1:18001/transporte/api/raio/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
