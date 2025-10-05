@@ -13,29 +13,33 @@ const Sobre = () => {
           <section className="projeto-section">
             <h2>Nossa Missão</h2>
             <p>
-              Este projeto foi desenvolvido com o objetivo de criar uma plataforma inovadora
-              que facilite a gestão e o acompanhamento de processos importantes para a
-              comunidade acadêmica. Nossa missão é proporcionar uma experiência intuitiva
-              e eficiente para todos os usuários.
+              Promover a mobilidade urbana sustentável por meio da tecnologia, ajudando as pessoas a fazerem escolhas mais conscientes sobre moradia, deslocamento e estilo de vida. Acreditamos que o acesso à informação em tempo real pode transformar a forma como vivemos e nos conectamos com a cidade, tornando-a mais acessível, eficiente e integrada.
             </p>
           </section>
 
           <section className="projeto-section">
             <h2>O que Oferecemos</h2>
             <ul>
-              Sistema de gestão integrado <br />
-              Interface amigável e responsiva <br />
-              Ferramentas de acompanhamento em tempo real <br />
-              Suporte técnico especializado <br />
+              Oferecemos uma plataforma interativa que mostra, em tempo real, todas as áreas acessíveis em até 30 minutos por transporte público a partir de qualquer localização. Utilizando mapas personalizados, dados geoespaciais e informações atualizadas, ajudamos usuários a:<br />
+
+              Explorar opções de mobilidade urbana;<br />
+
+              Avaliar regiões para morar com base na acessibilidade;<br />
+
+              Incentivar o uso de transporte coletivo;<br />
+
+              Apoiar o comércio local ao destacar áreas de fácil acesso.<br />
             </ul>
           </section>
 
           <section className="projeto-section">
             <h2>Tecnologias Utilizadas</h2>
             <p>
-              Desenvolvemos este projeto utilizando as mais modernas tecnologias do mercado,
-              incluindo React.js para o frontend, garantindo uma experiência fluida e
-              responsiva para todos os usuários.
+              O projeto foi desenvolvido com metodologia ágil, usando o framework Scrum e sprints quinzenais.
+              No front-end, foram utilizadas as tecnologias React e Maplibre para criação de interfaces dinâmicas e mapas interativos.
+              No back-end, Python com Django.
+              Para mapas e geolocalização, foram usadas APIs gratuitas como OpenStreetMap e Open Free Map, Maputnik Editor para estilização.
+              PostgreSQL com PostGIS para banco de dados geoespacial.
             </p>
           </section>
 
