@@ -143,6 +143,9 @@ const SearchBar = ({ onResults, onCoordinates }) => {
             <option value={5}>5 min</option>
             <option value={15}>15 min</option>
             <option value={30}>30 min</option>
+            <option value={60}>1h</option>
+            <option value={120}>2h</option>
+            <option value={240}>4h</option>
           </select>
 
           {/* Campo de texto */}
